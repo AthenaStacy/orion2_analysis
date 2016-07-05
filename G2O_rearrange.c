@@ -12,6 +12,12 @@
 
 #define readB 0   // Should we expect B-field data?
 
+#if(readB)
+  #define valnum 11
+#else
+  #define valnum 8
+#endif
+
 int pScreen = 0;  // Print data to screen (or error/out file for debugging)
 
 
@@ -29,21 +35,13 @@ double totMom[3] = {0,0,0};
 // Useful functions used often
 void ReadCell(FILE* readMe, double *Array)
 {
-#if(readB)
-    fread(&Array[0],sizeof(double),11,readMe);
-#else
-    fread(&Array[0],sizeof(double),8,readMe);
-#endif
+ fread(&Array[0],sizeof(double),valnum,readMe);
 }
 
 
 void WriteCell(FILE* writeMe, double *Array)
 {
-#if(readB)
-    fwrite(&Array[0],sizeof(double),11,writeMe);
-#else
-    fwrite(&Array[0],sizeof(double),8,writeMe);
-#endif
+ fwrite(&Array[0],sizeof(double),valnum,writeMe);
 }
 
 
@@ -71,14 +69,14 @@ int main(int argc, char **argv)
 
     // Input file anmes
     int numFiles = atoi(argv[1]);
-    char InFileHeader[25] = "./gadget2orion_";
+    char InFileHeader[100] = "/global/scratch/minerva/gadget2orion_";
 
     // Open the set of files
     FILE *InFiles[numFiles];
 
     // Output file names
     FILE *OutFile;
-    char out_file[50];
+    char out_file[100];
     sprintf(out_file,"%s%s",InFileHeader,"all");
 
     // Open all the things
@@ -182,7 +180,7 @@ int main(int argc, char **argv)
     }
 
     // Open output file
-    double curValues[8];
+    double curValues[valnum];
     OutFile = fopen(out_file,"w");
 
     // Print header info (array entries should all be identical at this point)
