@@ -7,6 +7,8 @@
  *
  * Takes two inputs: the number of cells in each dimension (integer) and the width
  * of the box to carve out, in units of parsecs.
+ * 
+ * Ars: Must be compiled with mpic++, NOT mpicc!
  *
  * To use, you need think about / set a few parameters before compiling:
  *
@@ -73,16 +75,22 @@ int main(int argc, char **argv)
     char path_in[200], path_out[200], basename[200], input_fname[200], input_fname2[200];
 
     //If we are taking a particular snapshot number, identify it here
-    int snapshot_number = 2;
+    int snapshot_number = 340;
 
     //Mulitiple files to load Gadget data from?
     int files=1;
 
     sprintf(path_in, pathname_in);
     sprintf(path_out, pathname_out);
-    sprintf(basename, "bin_HR9");
-    sprintf(input_fname, "%s/%s_%03d", path_in, basename, snapshot_number);
-#if(READB)
+
+    //sprintf(basename, "bin_HR9");
+    //sprintf(basename, "bin_zoom10_ref4_corr4");
+    sprintf(basename, "bin_zoom10_ref4_cut");
+    //sprintf(basename, "bin_zoom10_ref2_corr4");
+
+    //sprintf(input_fname, "%s/%s_%03d", path_in, basename, snapshot_number);
+    sprintf(input_fname, "%s/%s_%04d", path_in, basename, snapshot_number);
+#if(READB==2)
     sprintf(input_fname2, "%s_bfield.dat", path_in);
 #endif
 
@@ -102,10 +110,11 @@ int main(int argc, char **argv)
     printf("The width will be \t\t%g pc.\n",width);
     printf("Are you restarting? \t\t%d\n",RestartMe);
     printf("Your file input name: \t\t%s\n",input_fname);
-#if(READB)
+#if(READB==2)
     printf("Your B-field input name: \t\t%s\n",input_fname2);
 #endif
     printf("Your output file name: \t\t%s\n",output_fname);
+    printf("varnum = %d\n", varnum);
     printf("MPI--Num of processes: \t\t%d\n",npes);
     printf("\n\n");
     }
@@ -206,7 +215,7 @@ int main(int argc, char **argv)
 
     // If dealing with B-field from analytic calculations, read that in here.
     FILE *infile;
-#if(READB)
+#if(READB==2)
     infile = fopen(input_fname2, "r");
     for(n=0;n<Ngas;n++)
         fread(&P[n].Bfield[0], sizeof(double), 3, infile);
@@ -961,10 +970,12 @@ int Projection_SimpBread(char *outname, char *restartfilename, double pCenter[],
                     curData[6] = curData[6] + P[n].HDI*MassWeightedFrac;
                     curData[7] = curData[7] + P[n].HII*MassWeightedFrac;
                     // B-field
-#if(READB)
+#if(READB > 0)
                     curData[8] = curData[8] + P[n].Bfield[0]*MassWeightedFrac;
                     curData[9] = curData[9] + P[n].Bfield[1]*MassWeightedFrac;
                     curData[10] = curData[10] + P[n].Bfield[2]*MassWeightedFrac;
+                    //printf("bfield curData bx= %lg, by= %lg, bz= %lg\n", curData[8], curData[9], curData[10]);
+
 #endif
 
 

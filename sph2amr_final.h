@@ -15,13 +15,14 @@
 /* PreProcessor Directives =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 /* Debugging */
-#define DEBUGGING 0
+#define DEBUGGING 1
 
 /* Diagnostic Info? (Automatically included if DEBUGGING) */
 #define CHATTY 1
 
 /* Read in B-field information? */
-#define READB 0
+#define READB 0  //1 == bfield data is in same file as other sph data
+                 //2 == bfield data is in a separate file 
 
 /* Use less memory intensive Bread method? */
 #define BREAD 1
@@ -41,8 +42,8 @@ double hfac = 2.0;
 
 /* Where do I look for the Gadget2 output file? Where do I print the result
  file? Simply a period means the current working directory. */
-#define pathname_in "."
-#define pathname_out "."
+#define pathname_in "/global/scratch/minerva/"
+#define pathname_out "/global/scratch/minerva/"
 
 
 /* Some other pre-processors */
@@ -80,11 +81,11 @@ double mass_conv = (1.e10/hubble_param)*solarMass;
 
 
 // Global variables
-int *Id;
+//int *Id;
 int NumPart, Ngas, NumEPart;
 double Time, zred;
 
-#if(READB)
+#if(READB>0)
 int varnum = 11;
 #else
 int varnum = 8;
@@ -123,20 +124,17 @@ struct particle_data
     double  Pos[3];
     double  Vel[3];
     double  Mass;
-    int    Type;
+    int    Type, Id;
     double disx, disy, disz;
     double  Rho, U, Pres, nh, Density, hsm, hsm_phys;
-    //double Temp, sink;
-    //double  elec, HI, HII, HeI, HeII,  HeIII, H2I, H2II, HM, hsm, DI, DII, HDI, DM, HDII, FosHII gam;
     double H2I, HII, DII, HDI, HeII, HeIII, gam, sink;
-#if(READB)
-    double nh_test, Bfield[3];
+#if(READB == 1 || READB == 2)
+    double Bfield[3];
 #endif
     double mapped_mass;
     double mass_shiftx_mapped;
     double mass_shifty_mapped;
     double mass_shiftz_mapped;
-    double pot;
     double dummy;
 
     // Touching Storage
@@ -159,7 +157,6 @@ int Projection_SimpBread(char *outname, char *restartfilename, double pCENTER[],
 int write_snapshot(char *fname, int files, char *outname, double delx,
                    double dely, double delz, double vCOM[], int NumGas,
                    int myrank, int ref_lev, double width);
-int reordering(void);
 int unit_conversion(void);
 int allocate_memory(void);
 double calc_kernel_spline(int n, double x, double y, double z, double hsm,
@@ -390,8 +387,8 @@ int write_snapshot(char *fname, int files, char *outname, double delx, double de
     double delvy = vCOM[1];
     double delvz = vCOM[2];
 
-    if(READB == 1)
-        varnum=12;
+    if(READB > 0)
+        varnum=11;
 
 
     //For NON-cosmological runs
@@ -598,15 +595,15 @@ int write_snapshot(char *fname, int files, char *outname, double delx, double de
                                 Gdum[l] = Gdum[l] + P[n].HDI*rho*fac;
                             if(vartype == 7 && rho > 0)
                                 Gdum[l] = Gdum[l] + P[n].HII*rho*fac;
-#if(READB)
+#if(READB > 0)
                             if(vartype == 8 && rho > 0)
                                 Gdum[l] = Gdum[l] + P[n].Bfield[0]*rho*fac;
                             if(vartype == 9 && rho > 0)
                                 Gdum[l] = Gdum[l] + P[n].Bfield[1]*rho*fac;
                             if(vartype == 10 && rho > 0)
                                 Gdum[l] = Gdum[l] + P[n].Bfield[2]*rho*fac;
-                            if(vartype == 11 && rho > 0)
-                                Gdum[l] = Gdum[l] + P[n].nh_test*rho*fac;
+                            //if(vartype == 11 && rho > 0)
+                            //    Gdum[l] = Gdum[l] + P[n].nh_test*rho*fac;
 #endif
                         }
                     }
@@ -697,7 +694,6 @@ int write_snapshot(char *fname, int files, char *outname, double delx, double de
  */
 int allocate_memory(void)
 {
-    //printf("allocating memory...\n");
 
     if(!(P=(struct particle_data *) malloc(NumPart*sizeof(struct particle_data))))
     {
@@ -707,13 +703,13 @@ int allocate_memory(void)
 
     //  P--;   /* start with offset 1 */
 
-
+/*
     if(!(Id=(int *) malloc(NumPart*sizeof(int))))
     {
         fprintf(stderr,"failed to allocate memory.\n");
         exit(0);
     }
-
+*/
     //  Id--;   /* start with offset 1 */
 
     printf("Allocating particle memory...done\n");
@@ -721,59 +717,6 @@ int allocate_memory(void)
 }
 
 
-
-/* This routine brings the particles back into
- * the order of their ID's.
- * NOTE: The routine only works if the ID's cover
- * the range from 1 to NumPart !
- * In other cases, one has to use more general
- * sorting routines.
- */
-int reordering(void)
-{
-    int i,j;
-    int idsource, idsave, dest;
-    struct particle_data psave, psource;
-
-
-    printf("reordering....\n");
-
-    for(i=1; i<=NumPart; i++)
-    {
-        if(Id[i] != i)
-        {
-            psource= P[i];
-            idsource=Id[i];
-            dest=Id[i];
-
-            do
-            {
-                psave= P[dest];
-                idsave=Id[dest];
-
-                P[dest]= psource;
-                Id[dest]= idsource;
-
-                if(dest == i)
-                    break;
-
-                psource= psave;
-                idsource=idsave;
-
-                dest=idsource;
-            }
-            while(1);
-        }
-    }
-
-    printf("done.\n");
-
-    Id++;
-    free(Id);
-
-    printf("space for particle ID freed\n");
-    return(0);
-}
 
 
 double calc_kernel_tsc(int n, double xgrid, double ygrid, double zgrid, double hsm, double grid_size, double grid_size_half)
@@ -1007,7 +950,7 @@ int unit_conversion(void)
     //for NON-comoving sims
     //HubbleParam = 1.0;
 
-    for(i=0; i<=NumPart; i++)
+    for(i=0; i<NumPart; i++)
     {
         if(P[i].Type==0)  /* gas particle */
         {
@@ -1070,14 +1013,11 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
     FILE *outfile;
     char   buf[200];
     int    i,j,k,l,dummy,ntot_withmasses;
-    int    t,n,off,pc,pc_new=0,pc_sph;
+    int    t,n,off,pc=0,pc_new=0,pc_sph;
     int NumPart_new = 0, Ngas_new = 0;
     int Idnew, nnew=1;
-    double *pos, massnew, hsmnew, x, y, z, nnew_doub=1.0;
-    double randomx, randomy, randomz;
+    double massnew, hsmnew, x, y, z, nnew_doub=1.0;
 #define SKIP fread(&dummy, sizeof(dummy), 1, fd);
-
-    pos= (double*)malloc(sizeof(double) * 3);
 
 
     for(i=0, pc=0; i<files; i++, pc=pc_new)
@@ -1093,7 +1033,8 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
             exit(0);
         }
 
-        if(myrank==0) printf("reading `%s' ...\n",buf); fflush(stdout);
+        //if(myrank==0) 
+          printf("reading `%s' ...\n",buf); fflush(stdout);
 
         fread(&dummy, sizeof(dummy), 1, fd);
         fread(&header1, sizeof(header1), 1, fd);
@@ -1104,7 +1045,7 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
             for(k=0, NumPart=0, ntot_withmasses=0; k<5; k++)
             {
                 NumPart+= header1.npart[k];
-                if(k==0 && myrank==0)printf("NumPart[%d] = %d\n", k, header1.npart[k]);
+                if(myrank==0) printf("NumPart[%d] = %d\n", k, header1.npart[k]);
             }
             Ngas= header1.npart[0];
         }
@@ -1115,6 +1056,8 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
             Ngas= header1.npartTotal[0];
         }
 
+       printf("NumPart = %d\n", NumPart);
+
         for(k=0, ntot_withmasses=0; k<5; k++)
         {
             if(header1.mass[k]==0)
@@ -1123,6 +1066,8 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
 
         if(i==0)
             allocate_memory();
+
+        printf("begin reading positions ...\n"); fflush(stdout);
 
         SKIP;
         for(k=0,pc_new=pc;k<6;k++)
@@ -1135,6 +1080,8 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
         }
         SKIP;
 
+        printf("positions read, x = %lg\n", P[100].Pos[0]); fflush(stdout);
+
         SKIP;
         for(k=0,pc_new=pc;k<6;k++)
         {
@@ -1146,17 +1093,20 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
         }
         SKIP;
 
+       printf("velocities read, v = %lg\n", P[100].Vel[0]); fflush(stdout);
 
         SKIP;
         for(k=0,pc_new=pc;k<6;k++)
         {
             for(n=0;n<header1.npart[k];n++)
             {
-                fread(&Id[pc_new], sizeof(int), 1, fd);
+                fread(&P[pc_new].Id, sizeof(int), 1, fd);
                 pc_new++;
             }
         }
         SKIP;
+
+       printf("IDs read, ID = %d\n", P[100].Id); fflush(stdout);
 
         if(ntot_withmasses>0)
         {
@@ -1182,6 +1132,8 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
             SKIP;
         }
 
+
+        printf("mass read, mass = %lg\n", P[100].Mass); fflush(stdout);
 
         if(header1.npart[0]>0)
         {
@@ -1223,6 +1175,8 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
             }
             SKIP;
 
+            printf("chemistry read ...\n"); fflush(stdout);
+
             SKIP;
             for(n=0, pc_sph=pc; n<header1.npart[0];n++)
             {
@@ -1231,7 +1185,7 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
             }
             SKIP;
 
-            //printf("gam = %lg\n",P[100].gam);
+            printf("gam = %lg\n",P[100].gam); fflush(stdout);
 
             SKIP;
             for(n=0, pc_sph=pc; n<header1.npart[0];n++)
@@ -1240,6 +1194,24 @@ int read_snapshot(char *fname, int files, double *DelCoord, double boxsize, int 
                 pc_sph++;
             }
             SKIP;
+
+            printf("sink values read ...\n"); fflush(stdout);
+
+#if(READB == 1)
+           printf("reading bfield ...\n"); fflush(stdout);
+
+            SKIP;
+            for(n=0, pc_sph=pc; n<header1.npart[0];n++)
+            {
+                fread(&P[pc_sph].Bfield[0], sizeof(double), 1, fd);
+                fread(&P[pc_sph].Bfield[1], sizeof(double), 1, fd);
+                fread(&P[pc_sph].Bfield[2], sizeof(double), 1, fd);
+                pc_sph++;
+            }
+            SKIP;
+
+            printf("bfield values read, bx = %lg\n", P[100].Bfield[0]); fflush(stdout);
+#endif
 
         }
         fclose(fd);
