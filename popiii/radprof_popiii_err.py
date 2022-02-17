@@ -6,38 +6,21 @@ import numpy as na
 import pylab as pl
 from string import rstrip
 import fields
+from tracer_def import *
 #import matplotlib.colorbar as cb
 #import fields_iso
 
-igamma = 'tracer1'
-iHP =   'tracer2'
-iH =   'tracer3'
-iHM =  'tracer4'
-iH2P =   'tracer5'
-iH2 =   'tracer6'
-iDP =   'tracer7'
-iD =   'tracer8'
-iDM =  'tracer9'
-iHDP   =  'tracer10'
-iHD   =  'tracer11'
-iD2P  =  'tracer12'
-iD2 =  'tracer13'
-iHEP =  'tracer14'
-iHE  =  'tracer15'
-iHEPP  =  'tracer16'
-iELEC = 'tracer17'
-
 MRH = 0.76
-h2conv = (2.0/1.3158)
-heconv = (4.0/1.3158)
 
-datanum = '0134'
+datanum = '0186'
+#datanum = '0137'
 #datanum = '0023'
 #datanum = '0024'
 
-pf = load("/global/scratch/minerva/popiii_Bscope5/" + 'data.' + datanum + ".3d.hdf5")
-#pf = load("/global/scratch/minerva/popiii_Bscope4/" + 'data.' + datanum + ".3d.hdf5")
-#pf = load("/global/scratch/minerva/popiii_Bscope3/" + 'data.' + datanum + ".3d.hdf5")
+pf = load("/work/00863/minerva/popiii_Bscope10/" + 'data.' + datanum + ".3d.hdf5")
+#pf = load("/work/00863/minerva/popiii_Bscope6/" + 'data.' + datanum + ".3d.hdf5")
+#pf = load("/work/00863/minerva/popiii_Bscope4/" + 'data.' + datanum + ".3d.hdf5")
+#pf = load("/work/00863/minerva/popiii_Bscope3/" + 'data.' + datanum + ".3d.hdf5")
 value, location = pf.h.find_max("Density")
 data = pf.h.sphere(location, 3.0/pf['pc'])
 print 'location =', location
@@ -68,20 +51,6 @@ def _Radius(field, data):
 add_field("Radius", function=_Radius, take_log=False,
           units=r'\rm{AU}')
 
-def _mu(field,data):
-   h2frac = data[iH2] * h2conv #/data['density']
-   hefrac = data[iHE] * heconv #/data['density']  #should be approximately 0.24
-   hfrac = 1. - h2frac - hefrac
-   #mu_inv = (1. - h2frac)*0.76 + h2frac*0.76/2.0 + 0.24/4.0 #here h2frac ranges from 0-1
-   mu_inv = hfrac + h2frac/2. + hefrac/4.
-   mu = 1. / mu_inv
-   return  (mu )
-add_field("mu",function=_mu,units=r"\rm{Kelvin}",take_log=True)
-
-def _Temp_alt(field,data):
-   return  (data["ThermalEnergy"] * (data[igamma]-1.0) / data["density"] * data['mu'] * 1.67e-24 / 1.38e-16)
-add_field("Temp_alt",function=_Temp_alt,units=r"\rm{Kelvin}",take_log=True)
-
 def _nh_alt(field,data):
    return  (data["density"] * MRH / 1.67e-24 )
 add_field("nh_alt",function=_nh_alt,units=r"cm^{-3}",take_log=True)
@@ -103,7 +72,7 @@ print 'hm_min=', min(data[iHM]/data['density']), 'hm_max=', max(data[iHM]/data['
 print 'h2p_min=', min(data[iH2P]/data['density']), 'h2p_max=', max(data[iH2P]/data['density'])
 print 'dm_min=', min(data[iDM]/data['density']), 'dm_max=', max(data[iDM]/data['density'])
 print 'd2_min=', min(data[iD2]/data['density']), 'd2_max=', max(data[iD2]/data['density'])
-print 'temp_min=', min(data['Temp_alt']), 'temp_max=', max(data['Temp_alt'])
+print 'temp_min=', min(data['Temp.']), 'temp_max=', max(data['Temp.'])
 print 'vrad_min=', min(data['radial-velocity']), 'vrad_max=', max(data['radial-velocity'])
 print 'dens_min=', min(data['Density']), 'dens_max=', max(data['Density'])
 
@@ -121,12 +90,12 @@ nmax = 1.e14
 
 #location = [0,0,0]
 
-p3 = pc.add_profile_sphere(2., "pc", ['nh_alt', 'density', 'Temp_alt', iH2, iHP, iDP, iHD, iHEP], weight='CellMassMsun', x_bins = bin_num2, center = location, x_bounds = [nmin, nmax])
+p3 = pc.add_profile_sphere(2., "pc", ['nh_alt', 'density', 'Temp.', iH2, iHP, iDP, iHD, iHEP], weight='CellMassMsun', x_bins = bin_num2, center = location, x_bounds = [nmin, nmax])
 
 pc.save('radprof')
 
 ################read in other data files#######################################
-dir = '/global/home/users/minerva/gadget_runs/'
+dir = '/home1/00863/minerva/gadget_runs/'
 basename = 'bin_zoom10_new_cut_ref3'
 datanum1 = '7054'
 #datanum1 = '7052'
@@ -151,7 +120,7 @@ with open(dir + basename + '_nhprof_' + datanum1 + '.dat', "r") as f:
         nhdatA = [map(float, line.split()) for line in f]
 
 #with open(dir + basename + '_nhprof_' + datanum2 + '.dat', "r") as f:
-with open('/global/home/users/minerva/StandAlone/output.dat', "r") as f:
+with open('/home1/00863/minerva/StandAlone/output.dat', "r") as f:
         nhdatB = [map(float, line.split()) for line in f]
 
 
@@ -191,7 +160,7 @@ heiiB2 = []
 
 narr = 5000
 narr2 = 200
-narr3 = 1379
+narr3 = 1300
 #narr3 = 200
 line_arr = []
 for i in range(narr):
@@ -253,10 +222,10 @@ for i in range(narr2):
 #nh3 = p3.data['number-density']
 den = p3.data['density']
 nh3 = p3.data['nh_alt']
-temp = p3.data['Temp_alt']
+temp = p3.data['Temp.']
 
-#dfac = den
-dfac = 1.0
+dfac = den
+#dfac = 1.0
 
 h2 = p3.data[iH2] / dfac
 hii = p3.data[iHP] /dfac

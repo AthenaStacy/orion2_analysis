@@ -4,42 +4,81 @@ from string import rstrip
 import fields
 import fields_bfield
 import matplotlib.colorbar as cb
-import fields_bfield
-from tracer_def import *
 
-datanum = '0830'
+datanum = '0137'
 
-pf = load("/nobackupp7/astacy//popiii_Bscope17/" + 'data.' + datanum + '.3d.hdf5')
+pf = load("/work/00863/minerva/popiii_Bscope5/" + 'data.' + datanum + '.3d.hdf5')
 
+#prj = ProjectionPlot(pf,2,'z-velocity',weight_field=None,max_level=2)
+#prj.save()
 
+#define        iHP   0  (tracer2)
+#define        iH    1  (tracer3)
+#define        iHM   2  (tracer4)
+#define        iH2P  3  (tracer5)
+#define        iH2   4  (tracer6)
+#define        iDP   5  (tracer7)
+#define        iD    6
+#define        iDM   7
+#define        iHDP  8
+#define        iHD   9
+#define        iD2P  10
+#define        iD2   11
+#define        iHEP  12
+#define        iHE   13
+#define        iHEPP 14
+#define        iELEC 15  (tracer17)
+
+########################################################get B-field logs###############
+def _Bx_log(field,data):
+    return np.log10(np.abs(data["X-magnfield"]))
+add_field("Bx-log",function=_Bx_log, take_log=False,
+          units=r'Gauss')
+
+def _By_log(field,data):
+    return np.log10(np.abs(data["Y-magnfield"]))
+add_field("By-log",function=_By_log, take_log=False,
+          units=r'Gauss')
+
+def _Bz_log(field,data):
+    return np.log10(np.abs(data["Z-magnfield"]))
+add_field("Bz-log",function=_Bz_log, take_log=False,
+          units=r'Gauss')
+
+def _Bmag_log(field,data):
+    return np.log10(np.abs(data["Bmag"]))
+add_field("Bmag-log",function=_Bmag_log, take_log=False,
+          units=r'Gauss')
+
+def _DivB_log(field,data):
+    return np.log10((data["absDivB"]))
+add_field("DivB-log",function=_DivB_log, take_log=False,
+          units=r'Gauss / cm')
 ######################################################################################
-######################################################################################
 
-#length = 1.0
-length = 0.025
+length = 0.1
 
-#dmin = 1.e-1
-#dmax = 5.e-1
+dmin = 1.e-1
+dmax = 5.e-1
 prj = ProjectionPlot(pf, 'z', 'density', weight_field = "Density", width=(length,'pc'))
-#prj.set_zlim('density', dmin, dmax)
+prj.set_zlim('density', dmin, dmax)
 #prj.set_cmap("density", "Rainbow + white")
-#prj.set_cmap("density", "PRISM")
-prj.annotate_sphere([0,0,0], 1.e-5, {'fill':True})
-prj.save('data.'+ datanum)
-
-prj = ProjectionPlot(pf, 'z', 'Temperature', weight_field = "Temperature", width=(length,'pc'))
+prj.set_cmap("density", "PRISM")
 prj.save('data.'+ datanum)
 
 prj = ProjectionPlot(pf, 'z', 'tracer1', weight_field = "tracer1", width=(length,'pc'))
 prj.save('data.'+ datanum)
 
-prj = ProjectionPlot(pf, 'z', 'tracer2', weight_field = "tracer2", width=(length,'pc'))
+prj = ProjectionPlot(pf, 'z', 'tracer6', weight_field = "tracer1", width=(length,'pc'))
 prj.save('data.'+ datanum)
 
 #bmin = -21
 #bmax = -18
-bmin = -15
-bmax = -13.5
+
+prj = ProjectionPlot(pf, 'z', 'Bmag-log', weight_field = "Bmag-log", width=(length,'pc'))
+#prj.set_zlim('Bmag-log', bmin, bmax)
+prj.set_cmap("Bmag-log", "Rainbow18")
+prj.save('data.'+ datanum)
 
 prj = ProjectionPlot(pf, 'z', 'Bx-log', weight_field = "Bx-log", width=(length,'pc'))
 #prj.set_zlim('Bx-log', bmin, bmax)
@@ -56,20 +95,8 @@ prj = ProjectionPlot(pf, 'z', 'Bz-log', weight_field = "Bz-log", width=(length,'
 prj.set_cmap("Bz-log", "Rainbow18")
 prj.save('data.'+ datanum)
 
-prj = ProjectionPlot(pf, 'z', 'X-magnfield', weight_field = "X-magnfield", width=(length,'pc'))
-#prj.set_zlim('Bx-log', bmin, bmax)
-prj.set_cmap("X-magnfield", "Rainbow18")
-prj.save('data.'+ datanum)
 
-prj = ProjectionPlot(pf, 'z', 'Y-magnfield', weight_field = "Y-magnfield", width=(length,'pc'))
-#prj.set_zlim('By-log', bmin, bmax)
-prj.set_cmap("Y-magnfield", "Rainbow18")
-prj.save('data.'+ datanum)
 
-prj = ProjectionPlot(pf, 'z', 'Bmag-log', weight_field = "Bmag-log", width=(length,'pc'))
-#prj.set_zlim('Bmag-log', bmin, bmax)
-#prj.set_cmap("Y-magnfield", "Rainbow18")
-prj.save('data.'+ datanum)
 
 
 
